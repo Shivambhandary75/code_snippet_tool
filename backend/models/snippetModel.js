@@ -1,32 +1,53 @@
 const mongoose = require("mongoose");
 
-const SnippetSchema = new mongoose.Schema(
+const snippetSchema = new mongoose.Schema(
   {
-    title: { type: String },
-    content: { type: String, required: true },
-    language: { type: String },
-    visibility: {
+    title: {
       type: String,
-      enum: ["public", "unlisted", "private"],
-      default: "public",
+      required: true,
+      trim: true,
     },
-    owner: { type: mongoose.Schema.Types.ObjectId, ref: "User", default: null },
-    slug: { type: String, required: true, unique: true, index: true },
-    views: { type: Number, default: 0 },
-    forks: { type: Number, default: 0 },
-    expiresAt: { type: Date, default: null },
+    description: {
+      type: String,
+      default: "",
+    },
+    code: {
+      type: String,
+      required: true,
+    },
+    language: {
+      type: String,
+      required: true,
+      default: "javascript",
+    },
+    tags: [
+      {
+        type: String,
+        trim: true,
+      },
+    ],
+    isPublic: {
+      type: Boolean,
+      default: false,
+    },
+    userId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "User",
+      required: true,
+    },
+    favorite: {
+      type: Boolean,
+      default: false,
+    },
   },
-  { timestamps: true }
-);
-
-// Optional TTL index if expiresAt is used
-// Snippets will be removed by a background process if expiresAt is set
-SnippetSchema.index(
-  { expiresAt: 1 },
   {
-    expireAfterSeconds: 0,
-    partialFilterExpression: { expiresAt: { $type: "date" } },
+    timestamps: true,
   }
 );
 
-module.exports = mongoose.model("Snippet", SnippetSchema);
+// Index for better query performance
+snippetSchema.index({ userId: 1, createdAt: -1 });
+snippetSchema.index({ tags: 1 });
+snippetSchema.index({ language: 1 });
+
+module.exports = mongoose.model("Snippet", snippetSchema);

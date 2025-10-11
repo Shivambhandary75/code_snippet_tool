@@ -3,7 +3,6 @@ import Home from "./pages/Home";
 import CreateCodePage from "./components/CreateCodePage";
 import ThemeProvider from "./context/ThemeContext";
 
-function App() {
   return (
     <ThemeProvider>
       <Router>
@@ -20,6 +19,14 @@ function App() {
         </div>
       </Router>
     </ThemeProvider>
+  );
+}
+
+function App() {
+  return (
+    <AuthProvider>
+      <AppContent />
+    </AuthProvider>
   );
 }
 

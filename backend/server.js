@@ -4,36 +4,45 @@ const dotenv = require('dotenv');
 const cors = require('cors');
 const helmet = require('helmet');
 const morgan = require('morgan');
+const cookieParser = require("cookie-parser");
 
 dotenv.config();
 
-const snippetRoutes = require('./routes/snippetRoute');
+const snippetRoutes = require("./routes/snippetRoute");
+const AuthRoute = require("./routes/AuthRoute");
 
 const app = express();
+const { MONGO_URL, PORT } = process.env;
 
-app.use(helmet());
+mongoose
+  .connect(MONGO_URL, {
+    useNewUrlParser: true,
+    useUnifiedTopology: true,
+  })
+  .then(() => {
+    console.log("Connected to MongoDB");
+  })
+  .catch((err) => {
+    console.log(err);
+  });
+
+// Middleware
 app.use(cors());
-app.use(express.json({ limit: '200kb' }));
-app.use(morgan('dev'));
+app.use(helmet());
+app.use(morgan("combined"));
+app.use(cookieParser());
+app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
 
-// routes
-app.use('/api/snippets', snippetRoutes);
+// Routes
+app.use("/", AuthRoute);
+app.use("/api/snippets", snippetRoutes);
 
-const PORT = process.env.PORT || 4000;
+// Health check endpoint
+app.get("/health", (req, res) => {
+  res.json({ status: "OK", timestamp: new Date().toISOString() });
+});
 
-async function start() {
-  const mongo = process.env.MONGO_URI || 'mongodb://127.0.0.1:27017/snippets_db';
-  try {
-    await mongoose.connect(mongo, { useNewUrlParser: true, useUnifiedTopology: true });
-    console.log('Connected to MongoDB');
-    app.listen(PORT, () => console.log(`Server listening on ${PORT}`));
-  } catch (err) {
-    console.error('Failed to start server', err);
-    process.exit(1);
-  }
-}
-
-start();
-
-module.exports = app;
-//server.js
+app.listen(PORT || 3000, () => {
+  console.log(`Server is running on port ${PORT || 3000}`);
+});

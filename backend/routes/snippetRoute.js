@@ -1,37 +1,31 @@
 const express = require("express");
 const router = express.Router();
-const SnippetController = require("../controllers/SnippetController");
-const validate = require("../middleware/validateRequest");
-const { createSnippetSchema } = require("../schemas/snippetSchema");
-const rateLimit = require("../middleware/rateLimit");
+const snippetController = require("../controllers/SnippetController");
+const authMiddleware = require("../middleware/authmiddleware");
+const validateRequest = require("../middleware/validateRequest");
+const snippetValidation = require("../validation/snippetValidation");
 
-// public listing
-router.get("/", SnippetController.listSnippets);
+// Public routes (no auth required for these)
+router.get("/public/shared", snippetController.getPublicSnippets);
+router.get("/public/shared/:id", snippetController.getPublicSnippet);
 
-// create (rate limited)
+// All routes below require authentication
+router.use(authMiddleware);
+
+// CRUD operations for user's snippets
 router.post(
   "/",
-  rateLimit,
-  validate(createSnippetSchema),
-  SnippetController.createSnippet
+  validateRequest(snippetValidation.create),
+  snippetController.createSnippet
 );
-
-// read by slug
-router.get("/:slug", SnippetController.getSnippet);
-
-// raw view
-router.get("/:slug/raw", async (req, res, next) => {
-  // small wrapper: use controller but return plain text
-  try {
-    const { slug } = req.params;
-    const Snippet = require("../models/snippetModel");
-    const s = await Snippet.findOne({ slug }).lean();
-    if (!s) return res.status(404).send("not found");
-    if (s.visibility === "private") return res.status(403).send("forbidden");
-    res.type("text/plain").send(s.content);
-  } catch (err) {
-    next(err);
-  }
-});
+router.get("/", snippetController.getUserSnippets);
+router.get("/:id", snippetController.getSnippet);
+router.put(
+  "/:id",
+  validateRequest(snippetValidation.update),
+  snippetController.updateSnippet
+);
+router.delete("/:id", snippetController.deleteSnippet);
+router.patch("/:id/favorite", snippetController.toggleFavorite);
 
 module.exports = router;
