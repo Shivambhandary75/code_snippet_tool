@@ -3,7 +3,7 @@ import React from "react";
 
 const Footer = () => {
   return (
-  <footer className="bg-gradient-to-r from-blue-900 via-purple-900 to-black text-white py-8 mt-12">
+  <footer className="bg-gradient-to-r from-gray-900 via-blue-900 to-black text-white py-8 mt-12">
       <div className="container mx-auto flex flex-col md:flex-row items-center justify-between px-6">
         <div className="flex items-center space-x-2">
           <span className="font-bold text-xl tracking-wide">VibeCoded</span>
