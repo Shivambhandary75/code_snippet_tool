@@ -1,20 +1,38 @@
-import { BrowserRouter as Router, Routes, Route, Link } from "react-router-dom";
-import Home from "./pages/Home";
-import CreateCodePage from "./components/CreateCodePage";
+import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
+import { AuthProvider } from "./contexts/AuthContext";
 import ThemeProvider from "./context/ThemeContext";
+import Home from "./pages/Home";
+import Login from "./pages/Login";
+import Signup from "./pages/Signup";
+import CreateCodePage from "./components/CreateCodePage";
+import SharedSnippet from "./pages/SharedSnippet";
+import ProtectedRoute from "./components/ProtectedRoute";
 
+function AppContent() {
   return (
     <ThemeProvider>
       <Router>
-        {/* <nav className="p-4 bg-gray-800 text-white flex gap-4">
-          <Link to="/">Dashboard</Link>
-
-        </nav> */}
-
         <div className="">
           <Routes>
             <Route path="/" element={<Home/>} />
-            <Route path="/create" element={<CreateCodePage />} />
+            <Route path="/login" element={<Login />} />
+            <Route path="/signup" element={<Signup />} />
+            <Route path="/create" element={
+              <ProtectedRoute>
+                <CreateCodePage />
+              </ProtectedRoute>
+            } />
+            <Route path="/edit/:id" element={
+              <ProtectedRoute>
+                <CreateCodePage />
+              </ProtectedRoute>
+            } />
+            <Route path="/shared/:id" element={<SharedSnippet />} />
+            <Route path="/dashboard" element={
+              <ProtectedRoute>
+                <Home />
+              </ProtectedRoute>
+            } />
           </Routes>
         </div>
       </Router>

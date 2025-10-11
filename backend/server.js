@@ -5,13 +5,24 @@ const cors = require('cors');
 const helmet = require('helmet');
 const morgan = require('morgan');
 const cookieParser = require("cookie-parser");
+const path = require('path');
 
-dotenv.config();
+dotenv.config({ path: path.join(__dirname, '.env') });
+
+if (!process.env.MONGO_URL) {
+  console.error('Missing MONGO_URL in backend/.env');
+  process.exit(1);
+}
+if (!process.env.TOKEN_KEY && !process.env.JWT_SECRET) {
+  console.error('Missing TOKEN_KEY (or JWT_SECRET) in backend/.env');
+  process.exit(1);
+}
+
+const app = express();
 
 const snippetRoutes = require("./routes/snippetRoute");
 const AuthRoute = require("./routes/AuthRoute");
 
-const app = express();
 const { MONGO_URL, PORT } = process.env;
 
 mongoose
@@ -27,7 +38,14 @@ mongoose
   });
 
 // Middleware
-app.use(cors());
+app.use(
+  cors({
+    origin: "http://localhost:5173", // Vite default port
+    credentials: true,
+    methods: ["GET", "POST", "PUT", "DELETE", "PATCH"],
+    allowedHeaders: ["Content-Type", "Authorization"],
+  })
+);
 app.use(helmet());
 app.use(morgan("combined"));
 app.use(cookieParser());

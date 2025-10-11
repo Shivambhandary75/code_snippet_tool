@@ -39,6 +39,12 @@ const snippetSchema = new mongoose.Schema(
       type: Boolean,
       default: false,
     },
+    slug: {
+      type: String,
+      trim: true,
+      unique: true,
+      index: true,
+    },
   },
   {
     timestamps: true,

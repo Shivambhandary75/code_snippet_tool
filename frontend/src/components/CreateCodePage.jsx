@@ -10,65 +10,125 @@ import {
   Sparkles,
   Zap
 } from 'lucide-react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useParams } from 'react-router-dom';
+import axios from "axios";
+import Toast from "./Toast";
 
 const CreateCodePage = () => {
   const navigate = useNavigate();
-  const [code, setCode] = useState('');
-  const [title, setTitle] = useState('');
-  const [language, setLanguage] = useState('javascript');
+  const [code, setCode] = useState("");
+  const [title, setTitle] = useState("");
+  const [language, setLanguage] = useState("javascript");
   const [isPublic, setIsPublic] = useState(true);
-  const [description, setDescription] = useState('');
-  const [tags, setTags] = useState('');
+  const [description, setDescription] = useState("");
+  const [tags, setTags] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [toast, setToast] = useState({ visible: false, message: "" });
+  const { id } = useParams();
+  const [isEditMode, setIsEditMode] = useState(false);
 
   const handleSave = async (e) => {
     e.preventDefault();
     setIsSubmitting(true);
-    
-    // Simulate API call
-    await new Promise(resolve => setTimeout(resolve, 1000));
-    
-    console.log('Saving code:', { 
-      title, 
-      code, 
-      language, 
-      isPublic, 
-      description,
-      tags: tags.split(',').map(tag => tag.trim()).filter(tag => tag)
-    });
-    
-    alert('Snippet created successfully!');
-    setIsSubmitting(false);
-    navigate('/dashboard');
+
+    try {
+      const payload = {
+        title,
+        description,
+        code,
+        language,
+        tags: tags
+          .split(",")
+          .map((tag) => tag.trim())
+          .filter((tag) => tag),
+        isPublic,
+        favorite: false,
+      };
+
+      // Try to include token if available in localStorage (AuthContext can be used instead)
+      const token = localStorage.getItem("token") || null;
+      const config = token
+        ? { headers: { Authorization: `Bearer ${token}` } }
+        : undefined;
+
+      let response;
+      if (isEditMode && id) {
+        response = await axios.put(`/api/snippets/${id}`, payload, config);
+      } else {
+        response = await axios.post("/api/snippets", payload, config);
+      }
+
+      if (response.data.success) {
+        setToast({ visible: true, message: "Snippet created successfully!" });
+        setTimeout(() => {
+          navigate("/dashboard");
+        }, 1500);
+      }
+    } catch (error) {
+      // Log helpful info for debugging
+      console.error("Error creating snippet (full):", error);
+      console.error("Server response body:", error.response?.data);
+
+      setToast({
+        visible: true,
+        message:
+          error.response?.data?.message || error.message || "Failed to create snippet",
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
   };
+
+  // Fetch snippet when in edit mode
+  React.useEffect(() => {
+    const fetchSnippet = async () => {
+      if (!id) return;
+      try {
+        const resp = await axios.get(`/api/snippets/${id}`);
+        if (resp.data && resp.data.success && resp.data.data) {
+          const s = resp.data.data;
+          setTitle(s.title || "");
+          setDescription(s.description || "");
+          setCode(s.code || "");
+          setLanguage(s.language || "javascript");
+          setTags((s.tags || []).join(", "));
+          setIsPublic(Boolean(s.isPublic));
+          setIsEditMode(true);
+        }
+      } catch (err) {
+        console.error("Failed to fetch snippet for edit:", err);
+        setToast({ visible: true, message: "Failed to load snippet for editing" });
+      }
+    };
+    fetchSnippet();
+  }, [id]);
 
   const handleCopy = () => {
     navigator.clipboard.writeText(code);
-    alert('Code copied to clipboard!');
+    setToast({ visible: true, message: "Code copied to clipboard!" });
   };
 
   const languages = [
-    { value: 'javascript', label: 'JavaScript', color: 'bg-yellow-400' },
-    { value: 'python', label: 'Python', color: 'bg-blue-400' },
-    { value: 'typescript', label: 'TypeScript', color: 'bg-blue-600' },
-    { value: 'java', label: 'Java', color: 'bg-red-500' },
-    { value: 'cpp', label: 'C++', color: 'bg-pink-500' },
-    { value: 'html', label: 'HTML', color: 'bg-orange-500' },
-    { value: 'css', label: 'CSS', color: 'bg-purple-500' },
-    { value: 'php', label: 'PHP', color: 'bg-indigo-500' },
-    { value: 'sql', label: 'SQL', color: 'bg-gray-500' },
+    { value: "javascript", label: "JavaScript", color: "bg-yellow-400" },
+    { value: "python", label: "Python", color: "bg-blue-400" },
+    { value: "typescript", label: "TypeScript", color: "bg-blue-600" },
+    { value: "java", label: "Java", color: "bg-red-500" },
+    { value: "cpp", label: "C++", color: "bg-pink-500" },
+    { value: "html", label: "HTML", color: "bg-orange-500" },
+    { value: "css", label: "CSS", color: "bg-purple-500" },
+    { value: "php", label: "PHP", color: "bg-indigo-500" },
+    { value: "sql", label: "SQL", color: "bg-gray-500" },
   ];
 
   return (
-  <div className="min-h-screen bg-gradient-to-r from-blue-900 via-black to-black transition-colors duration-300">
+    <div className="min-h-screen bg-gradient-to-r from-blue-900 via-black to-black transition-colors duration-300">
       {/* Header */}
-  <header className="bg-gradient-to-r from-blue-900 via-black to-black border-b border-gray-800 sticky top-0 z-50">
+      <header className="bg-gradient-to-r from-blue-900 via-black to-black border-b border-gray-800 sticky top-0 z-50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center py-4">
             <div className="flex items-center space-x-4">
               <button
-                onClick={() => navigate('/dashboard')}
+                onClick={() => navigate("/dashboard")}
                 className="p-2 rounded-lg bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 transition-all duration-300 hover:scale-105 flex items-center space-x-2 text-gray-600 dark:text-gray-400"
               >
                 <ArrowLeft size={20} />
@@ -79,19 +139,22 @@ const CreateCodePage = () => {
                 </div>
                 <div>
                   <h1 className="text-2xl font-bold bg-gradient-to-r from-blue-400 to-blue-900 bg-clip-text text-transparent">
-                    Create Snippet
+                    {isEditMode ? 'Edit Snippet' : 'Create Snippet'}
                   </h1>
-                  <p className="text-gray-600 dark:text-gray-400 text-sm">Add your code to the collection</p>
+                  <p className="text-gray-600 dark:text-gray-400 text-sm">
+                    Add your code to the collection
+                  </p>
                 </div>
               </div>
             </div>
-            
+
             <div className="flex items-center space-x-4">
               <div className="flex items-center space-x-2 text-sm text-gray-500 dark:text-gray-400">
                 <Zap size={16} className="text-yellow-500" />
                 <span>Pro Tips</span>
               </div>
-              <button className="group relative bg-gradient-to-r from-blue-800 to-black hover:from-blue-900 hover:to-black text-white px-6 py-3 rounded-xl flex items-center space-x-2 transition-all duration-300 hover:scale-105 hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
+              <button
+                className="group relative bg-gradient-to-r from-blue-800 to-black hover:from-blue-900 hover:to-black text-white px-6 py-3 rounded-xl flex items-center space-x-2 transition-all duration-300 hover:scale-105 hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
                 type="submit"
                 form="snippet-form"
                 disabled={isSubmitting}
@@ -103,7 +166,7 @@ const CreateCodePage = () => {
                   <Save size={20} className="relative z-10" />
                 )}
                 <span className="relative z-10 font-semibold">
-                  {isSubmitting ? 'Creating...' : 'Create Snippet'}
+                  {isSubmitting ? (isEditMode ? 'Updating...' : 'Creating...') : (isEditMode ? 'Update Snippet' : 'Create Snippet')}
                 </span>
               </button>
             </div>
@@ -169,7 +232,7 @@ const CreateCodePage = () => {
                     </button>
                   </div>
                 </div>
-                
+
                 <div className="p-1">
                   <textarea
                     required
@@ -191,8 +254,10 @@ const CreateCodePage = () => {
           <div className="space-y-6">
             {/* Language & Privacy */}
             <div className="bg-gradient-to-r from-blue-900 via-black to-black rounded-2xl shadow-sm p-6 border border-gray-800">
-              <h3 className="font-semibold text-gray-900 dark:text-white mb-4">Settings</h3>
-              
+              <h3 className="font-semibold text-gray-900 dark:text-white mb-4">
+                Settings
+              </h3>
+
               {/* Language */}
               <div className="mb-4">
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
@@ -204,7 +269,7 @@ const CreateCodePage = () => {
                   onChange={(e) => setLanguage(e.target.value)}
                   className="w-full px-3 py-2 bg-transparent border border-gray-700 rounded-lg focus:ring-2 focus:ring-blue-800 focus:border-transparent transition-all duration-300"
                 >
-                  {languages.map(lang => (
+                  {languages.map((lang) => (
                     <option key={lang.value} value={lang.value}>
                       {lang.label}
                     </option>
@@ -229,9 +294,11 @@ const CreateCodePage = () => {
                       <Eye size={16} className="text-green-500" />
                       <span className="text-sm">Public</span>
                     </div>
-                    <span className="text-xs text-gray-500 ml-auto">Visible to everyone</span>
+                    <span className="text-xs text-gray-500 ml-auto">
+                      Visible to everyone
+                    </span>
                   </label>
-                  
+
                   <label className="flex items-center space-x-3 p-3 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700/50 cursor-pointer transition-colors">
                     <input
                       type="radio"
@@ -243,7 +310,9 @@ const CreateCodePage = () => {
                       <EyeOff size={16} className="text-gray-500" />
                       <span className="text-sm">Private</span>
                     </div>
-                    <span className="text-xs text-gray-500 ml-auto">Only visible to you</span>
+                    <span className="text-xs text-gray-500 ml-auto">
+                      Only visible to you
+                    </span>
                   </label>
                 </div>
               </div>
@@ -260,7 +329,9 @@ const CreateCodePage = () => {
                   className="w-full px-3 py-2 bg-transparent border border-gray-700 rounded-lg focus:ring-2 focus:ring-blue-800 focus:border-transparent transition-all duration-300"
                   placeholder="react, hooks, api, ..."
                 />
-                <p className="text-xs text-gray-500 mt-1">Separate tags with commas</p>
+                <p className="text-xs text-gray-500 mt-1">
+                  Separate tags with commas
+                </p>
               </div>
             </div>
 
@@ -284,12 +355,12 @@ const CreateCodePage = () => {
         {/* Bottom Actions */}
         <div className="flex justify-between items-center mt-8 pt-6 border-t border-blue-900">
           <button
-            onClick={() => navigate('/dashboard')}
+            onClick={() => navigate("/dashboard")}
             className="px-6 py-3 rounded-xl bg-blue-900 text-white font-medium hover:bg-black transition-all duration-300 hover:scale-105"
           >
             Cancel
           </button>
-          
+
           <div className="flex items-center space-x-4">
             <button
               type="button"
@@ -299,7 +370,7 @@ const CreateCodePage = () => {
               <Copy size={16} />
               <span>Copy Code</span>
             </button>
-            
+
             <button
               type="submit"
               form="snippet-form"
@@ -320,6 +391,14 @@ const CreateCodePage = () => {
             </button>
           </div>
         </div>
+
+        {/* Toast */}
+        {toast.visible && (
+          <Toast
+            message={toast.message}
+            onClose={() => setToast({ visible: false, message: "" })}
+          />
+        )}
       </div>
     </div>
   );
