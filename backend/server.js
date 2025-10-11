@@ -8,13 +8,9 @@ const morgan = require('morgan');
 dotenv.config();
 
 const snippetRoutes = require('./routes/snippetRoute');
+const AuthRoute = require("./routes/AuthRoute");
 
 const app = express();
-const port = 3000;
-const cors = require("cors");
-require("dotenv").config();
-const mongoose = require("mongoose");
-const AuthRoute = require("./routes/AuthRoute");
 const { MONGO_URL, PORT } = process.env;
 
 mongoose
@@ -29,12 +25,22 @@ mongoose
     console.log(err);
   });
 
+// Middleware
 app.use(cors());
+app.use(helmet());
+app.use(morgan("combined"));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
+// Routes
 app.use("/", AuthRoute);
+app.use("/api/snippets", snippetRoutes);
 
-app.listen(port, () => {
-  console.log(`Server is running on port ${port}`);
+// Health check endpoint
+app.get("/health", (req, res) => {
+  res.json({ status: "OK", timestamp: new Date().toISOString() });
+});
+
+app.listen(PORT || 3000, () => {
+  console.log(`Server is running on port ${PORT || 3000}`);
 });

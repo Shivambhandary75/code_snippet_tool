@@ -1,80 +1,291 @@
 const Snippet = require("../models/snippetModel");
-const { nanoid } = require("nanoid");
 
-async function createSnippet(req, res) {
-  try {
-    const { title, content, language, visibility, expiresInDays } = req.body;
-    if (!content)
-      return res.status(400).json({ message: "content is required" });
+const snippetController = {
+  // Create new snippet
+  createSnippet: async (req, res) => {
+    try {
+      const { title, description, code, language, tags, isPublic, favorite } = req.body;
+      
+      const snippet = new Snippet({
+        title,
+        description: description || "",
+        code,
+        language,
+        tags: tags || [],
+        isPublic: isPublic || false,
+        favorite: favorite || false,
+        userId: req.user._id
+      });
 
-    const slug = nanoid(8);
-    const snippet = new Snippet({
-      title,
-      content,
-      language,
-      visibility: visibility || "public",
-      owner: req.user ? req.user._id : null,
-      slug,
-    });
-
-    if (expiresInDays) {
-      const d = new Date();
-      d.setDate(d.getDate() + Number(expiresInDays));
-      snippet.expiresAt = d;
+      await snippet.save();
+      
+      res.status(201).json({
+        success: true,
+        message: "Snippet created successfully",
+        data: snippet
+      });
+    } catch (error) {
+      console.error("Create snippet error:", error);
+      res.status(500).json({
+        success: false,
+        message: "Failed to create snippet"
+      });
     }
+  },
 
-    await snippet.save();
-    return res.status(201).json({ snippet });
-  } catch (err) {
-    console.error(err);
-    return res.status(500).json({ message: "server error" });
-  }
-}
+  // Get all snippets for logged-in user
+  getUserSnippets: async (req, res) => {
+    try {
+      const { 
+        page = 1, 
+        limit = 10, 
+        search = "", 
+        language = "", 
+        tags = "",
+        favorite = ""
+      } = req.query;
 
-async function getSnippet(req, res) {
-  try {
-    const { slug } = req.params;
-    const s = await Snippet.findOne({ slug }).lean();
-    if (!s) return res.status(404).json({ message: "not found" });
-
-    // enforce private visibility
-    if (s.visibility === "private") {
-      if (!req.user || String(req.user._id) !== String(s.owner)) {
-        return res.status(403).json({ message: "forbidden" });
+      const filter = { userId: req.user._id };
+      
+      // Search filter
+      if (search) {
+        filter.$or = [
+          { title: { $regex: search, $options: "i" } },
+          { description: { $regex: search, $options: "i" } },
+          { tags: { $in: [new RegExp(search, "i")] } }
+        ];
       }
+      
+      // Language filter
+      if (language) {
+        filter.language = { $regex: language, $options: "i" };
+      }
+      
+      // Tags filter
+      if (tags) {
+        const tagArray = tags.split(',').map(tag => tag.trim());
+        filter.tags = { $in: tagArray.map(tag => new RegExp(tag, "i")) };
+      }
+      
+      // Favorite filter
+      if (favorite !== "") {
+        filter.favorite = favorite === "true";
+      }
+
+      const snippets = await Snippet.find(filter)
+        .sort({ createdAt: -1 })
+        .limit(limit * 1)
+        .skip((page - 1) * limit);
+
+      const total = await Snippet.countDocuments(filter);
+
+      res.json({
+        success: true,
+        data: snippets,
+        pagination: {
+          current: page,
+          pages: Math.ceil(total / limit),
+          total
+        }
+      });
+    } catch (error) {
+      console.error("Get snippets error:", error);
+      res.status(500).json({
+        success: false,
+        message: "Failed to fetch snippets"
+      });
     }
+  },
 
-    // increment views for public/unlisted
-    if (s.visibility !== "private") {
-      await Snippet.updateOne({ _id: s._id }, { $inc: { views: 1 } });
+  // Get single snippet
+  getSnippet: async (req, res) => {
+    try {
+      const snippet = await Snippet.findOne({
+        _id: req.params.id,
+        userId: req.user._id
+      });
+
+      if (!snippet) {
+        return res.status(404).json({
+          success: false,
+          message: "Snippet not found"
+        });
+      }
+
+      res.json({
+        success: true,
+        data: snippet
+      });
+    } catch (error) {
+      console.error("Get snippet error:", error);
+      res.status(500).json({
+        success: false,
+        message: "Failed to fetch snippet"
+      });
     }
+  },
 
-    return res.json({ snippet: s });
-  } catch (err) {
-    console.error(err);
-    return res.status(500).json({ message: "server error" });
+  // Update snippet
+  updateSnippet: async (req, res) => {
+    try {
+      const snippet = await Snippet.findOne({
+        _id: req.params.id,
+        userId: req.user._id
+      });
+
+      if (!snippet) {
+        return res.status(404).json({
+          success: false,
+          message: "Snippet not found"
+        });
+      }
+
+      const updatedSnippet = await Snippet.findByIdAndUpdate(
+        req.params.id,
+        { $set: req.body },
+        { new: true, runValidators: true }
+      );
+
+      res.json({
+        success: true,
+        message: "Snippet updated successfully",
+        data: updatedSnippet
+      });
+    } catch (error) {
+      console.error("Update snippet error:", error);
+      res.status(500).json({
+        success: false,
+        message: "Failed to update snippet"
+      });
+    }
+  },
+
+  // Delete snippet
+  deleteSnippet: async (req, res) => {
+    try {
+      const snippet = await Snippet.findOne({
+        _id: req.params.id,
+        userId: req.user._id
+      });
+
+      if (!snippet) {
+        return res.status(404).json({
+          success: false,
+          message: "Snippet not found"
+        });
+      }
+
+      await Snippet.findByIdAndDelete(req.params.id);
+
+      res.json({
+        success: true,
+        message: "Snippet deleted successfully"
+      });
+    } catch (error) {
+      console.error("Delete snippet error:", error);
+      res.status(500).json({
+        success: false,
+        message: "Failed to delete snippet"
+      });
+    }
+  },
+
+  // Toggle favorite
+  toggleFavorite: async (req, res) => {
+    try {
+      const snippet = await Snippet.findOne({
+        _id: req.params.id,
+        userId: req.user._id
+      });
+
+      if (!snippet) {
+        return res.status(404).json({
+          success: false,
+          message: "Snippet not found"
+        });
+      }
+
+      snippet.favorite = !snippet.favorite;
+      await snippet.save();
+
+      res.json({
+        success: true,
+        message: `Snippet ${snippet.favorite ? 'added to' : 'removed from'} favorites`,
+        data: snippet
+      });
+    } catch (error) {
+      console.error("Toggle favorite error:", error);
+      res.status(500).json({
+        success: false,
+        message: "Failed to update favorite"
+      });
+    }
+  },
+
+  // Get public snippets (for sharing)
+  getPublicSnippets: async (req, res) => {
+    try {
+      const { page = 1, limit = 10, language = "" } = req.query;
+
+      const filter = { isPublic: true };
+      
+      if (language) {
+        filter.language = { $regex: language, $options: "i" };
+      }
+
+      const snippets = await Snippet.find(filter)
+        .populate("userId", "username email")
+        .sort({ createdAt: -1 })
+        .limit(limit * 1)
+        .skip((page - 1) * limit);
+
+      const total = await Snippet.countDocuments(filter);
+
+      res.json({
+        success: true,
+        data: snippets,
+        pagination: {
+          current: page,
+          pages: Math.ceil(total / limit),
+          total
+        }
+      });
+    } catch (error) {
+      console.error("Get public snippets error:", error);
+      res.status(500).json({
+        success: false,
+        message: "Failed to fetch public snippets"
+      });
+    }
+  },
+
+  // Get snippet by ID for public access
+  getPublicSnippet: async (req, res) => {
+    try {
+      const snippet = await Snippet.findOne({
+        _id: req.params.id,
+        isPublic: true
+      }).populate("userId", "username email");
+
+      if (!snippet) {
+        return res.status(404).json({
+          success: false,
+          message: "Snippet not found or not public"
+        });
+      }
+
+      res.json({
+        success: true,
+        data: snippet
+      });
+    } catch (error) {
+      console.error("Get public snippet error:", error);
+      res.status(500).json({
+        success: false,
+        message: "Failed to fetch snippet"
+      });
+    }
   }
-}
+};
 
-async function listSnippets(req, res) {
-  try {
-    const page = Math.max(1, Number(req.query.page) || 1);
-    const limit = Math.min(100, Number(req.query.limit) || 20);
-    const filter = { visibility: "public" };
-
-    if (req.query.language) filter.language = req.query.language;
-
-    const total = await Snippet.countDocuments(filter);
-    const snippets = await Snippet.find(filter)
-      .sort({ createdAt: -1 })
-      .skip((page - 1) * limit)
-      .limit(limit)
-      .lean();
-    return res.json({ meta: { total, page, limit }, snippets });
-  } catch (err) {
-    console.error(err);
-    return res.status(500).json({ message: "server error" });
-  }
-}
-
-module.exports = { createSnippet, getSnippet, listSnippets };
+module.exports = snippetController;
