@@ -4,6 +4,7 @@ const port = 3000;
 const cors = require("cors");
 require("dotenv").config();
 const mongoose = require("mongoose");
+const AuthRoute = require("./routes/AuthRoute");
 const { MONGO_URL, PORT } = process.env;
 
 mongoose
@@ -21,6 +22,8 @@ mongoose
 app.use(cors());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
+
+app.use("/", AuthRoute);
 
 app.listen(port, () => {
   console.log(`Server is running on port ${port}`);
