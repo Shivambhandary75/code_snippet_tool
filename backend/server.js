@@ -27,7 +27,14 @@ mongoose
   });
 
 // Middleware
-app.use(cors());
+app.use(
+  cors({
+    origin: "http://localhost:5173", // Vite default port
+    credentials: true,
+    methods: ["GET", "POST", "PUT", "DELETE", "PATCH"],
+    allowedHeaders: ["Content-Type", "Authorization"],
+  })
+);
 app.use(helmet());
 app.use(morgan("combined"));
 app.use(cookieParser());

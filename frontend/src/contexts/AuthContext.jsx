@@ -28,15 +28,36 @@ export const AuthProvider = ({ children }) => {
 
   const checkAuthStatus = async () => {
     try {
-      // You can add a /me endpoint to your backend to check auth status
-      // For now, we'll just check if there's a token in cookies
-      const response = await axios.get('/health');
-      if (response.data.status === 'OK') {
-        // Token exists, user is logged in
-        // You might want to fetch user data here
-        setUser({ isAuthenticated: true });
+      const token = localStorage.getItem('token');
+      const userId = localStorage.getItem('userId');
+      
+      if (token && userId) {
+        // Set axios default header
+        axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
+        
+        // Verify token is still valid by making a request
+        const response = await axios.get('/health');
+        if (response.data.status === 'OK') {
+          setUser({ 
+            isAuthenticated: true,
+            userId: userId,
+            token: token
+          });
+        } else {
+          // Token is invalid, clear it
+          localStorage.removeItem('token');
+          localStorage.removeItem('userId');
+          delete axios.defaults.headers.common['Authorization'];
+          setUser(null);
+        }
+      } else {
+        setUser(null);
       }
     } catch (error) {
+      // Token is invalid or expired, clear it
+      localStorage.removeItem('token');
+      localStorage.removeItem('userId');
+      delete axios.defaults.headers.common['Authorization'];
       setUser(null);
     } finally {
       setLoading(false);
@@ -51,7 +72,18 @@ export const AuthProvider = ({ children }) => {
       });
 
       if (response.data.success) {
-        setUser({ isAuthenticated: true });
+        // Store token in localStorage
+        localStorage.setItem('token', response.data.token);
+        localStorage.setItem('userId', response.data.userId);
+        
+        // Set axios default header
+        axios.defaults.headers.common['Authorization'] = `Bearer ${response.data.token}`;
+        
+        setUser({ 
+          isAuthenticated: true,
+          userId: response.data.userId,
+          token: response.data.token
+        });
         return { success: true, message: response.data.message };
       }
     } catch (error) {
@@ -71,7 +103,18 @@ export const AuthProvider = ({ children }) => {
       });
 
       if (response.data.success) {
-        setUser({ isAuthenticated: true });
+        // Store token in localStorage
+        localStorage.setItem('token', response.data.token);
+        localStorage.setItem('userId', response.data.user._id);
+        
+        // Set axios default header
+        axios.defaults.headers.common['Authorization'] = `Bearer ${response.data.token}`;
+        
+        setUser({ 
+          isAuthenticated: true,
+          userId: response.data.user._id,
+          token: response.data.token
+        });
         return { success: true, message: response.data.message };
       }
     } catch (error) {
@@ -89,6 +132,10 @@ export const AuthProvider = ({ children }) => {
     } catch (error) {
       console.error('Logout error:', error);
     } finally {
+      // Clear localStorage and axios headers
+      localStorage.removeItem('token');
+      localStorage.removeItem('userId');
+      delete axios.defaults.headers.common['Authorization'];
       setUser(null);
     }
   };
