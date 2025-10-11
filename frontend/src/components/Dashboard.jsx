@@ -332,16 +332,25 @@ const Dashboard = () => {
           {viewMode === "grid" ? (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               {filteredSnippets.map((snippet, index) => (
-                <SnippetCard key={snippet.id} snippet={snippet} index={index} />
+                <SnippetCard
+                  key={snippet._id}
+                  snippet={snippet}
+                  index={index}
+                  onDelete={deleteSnippet}
+                  onToggleFavorite={toggleFavorite}
+                  onCopy={copyToClipboard}
+                />
               ))}
             </div>
           ) : (
             <div className="bg-white/80 dark:bg-gray-800/80 backdrop-blur-lg rounded-2xl shadow-sm border border-gray-200/50 dark:border-gray-700/50 overflow-hidden">
               {filteredSnippets.map((snippet, index) => (
                 <SnippetListItem
-                  key={snippet.id}
+                  key={snippet._id}
                   snippet={snippet}
                   index={index}
+                  onDelete={deleteSnippet}
+                  onToggleFavorite={toggleFavorite}
                 />
               ))}
             </div>
@@ -440,7 +449,7 @@ const StatCard = ({ icon, label, value, trend, color, delay }) => {
 };
 
 // Enhanced Snippet Card Component
-const SnippetCard = ({ snippet, index }) => {
+const SnippetCard = ({ snippet, index, onDelete, onToggleFavorite, onCopy }) => {
   const [isHovered, setIsHovered] = useState(false);
   const { darkMode } = useContext(ThemeContext);
 
@@ -484,7 +493,7 @@ const SnippetCard = ({ snippet, index }) => {
             </span>
           </div>
           <button
-            onClick={() => toggleFavorite(snippet._id)}
+            onClick={() => onToggleFavorite && onToggleFavorite(snippet._id)}
             className={`p-2 rounded-lg transition-all duration-300 ${
               snippet.favorite
                 ? "text-yellow-500 bg-yellow-50 dark:bg-yellow-500/20"
@@ -508,17 +517,17 @@ const SnippetCard = ({ snippet, index }) => {
         </p>
 
         {/* Code Preview */}
-        <div className="mb-4">
-          <CodeSnippet
-            code={snippet.code}
-            className={
-              darkMode
-                ? "bg-gray-700/50 border-gray-600 text-gray-300"
-                : "bg-gray-50 border-gray-200 text-gray-700"
-            }
-            onCopy={() => copyToClipboard(snippet.code, snippet.id)}
-          />
-        </div>
+          <div className="mb-4">
+            <CodeSnippet
+              code={snippet.code}
+              className={
+                darkMode
+                  ? "bg-gray-700/50 border-gray-600 text-gray-300"
+                  : "bg-gray-50 border-gray-200 text-gray-700"
+              }
+              onCopy={() => onCopy && onCopy(snippet.code, snippet._id)}
+            />
+          </div>
 
         {/* Tags */}
         <div className="flex flex-wrap gap-1 mb-4">
@@ -548,21 +557,22 @@ const SnippetCard = ({ snippet, index }) => {
               label="Edit"
               color="green"
               onClick={() => {
-                /* TODO: Implement edit */
+                // navigate to edit page
+                window.location.href = `/edit/${snippet._id}`;
               }}
             />
             <ActionButton
               icon={<Trash2 size={16} />}
               label="Delete"
               color="red"
-              onClick={() => deleteSnippet(snippet._id)}
+              onClick={() => onDelete && onDelete(snippet._id)}
             />
           </div>
           <ActionButton
             icon={<Share2 size={16} />}
             label="Share"
             color="purple"
-            onClick={() => copyToClipboard(snippet.code, snippet._id)}
+            onClick={() => onCopy && onCopy(snippet.code, snippet._id)}
           />
         </div>
       </div>
@@ -652,7 +662,7 @@ const SnippetListItem = ({ snippet, index }) => {
               label="Favorite"
               color="yellow"
               small
-              onClick={() => toggleFavorite(snippet._id)}
+              onClick={() => onToggleFavorite && onToggleFavorite(snippet._id)}
             />
             <ActionButton
               icon={<Edit size={16} />}
@@ -660,7 +670,7 @@ const SnippetListItem = ({ snippet, index }) => {
               color="green"
               small
               onClick={() => {
-                /* TODO: Implement edit */
+                window.location.href = `/edit/${snippet._id}`;
               }}
             />
             <ActionButton
@@ -668,7 +678,7 @@ const SnippetListItem = ({ snippet, index }) => {
               label="Delete"
               color="red"
               small
-              onClick={() => deleteSnippet(snippet._id)}
+              onClick={() => onDelete && onDelete(snippet._id)}
             />
           </div>
         </div>

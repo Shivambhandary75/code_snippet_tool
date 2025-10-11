@@ -1,11 +1,28 @@
 const Snippet = require("../models/snippetModel");
+const { nanoid } = require('nanoid');
 
 const snippetController = {
   // Create new snippet
   createSnippet: async (req, res) => {
     try {
+      // ensure the request is authenticated
+      if (!req.user || !req.user._id) {
+        return res.status(401).json({ success: false, message: 'Unauthorized - user missing' });
+      }
+
       const { title, description, code, language, tags, isPublic, favorite } = req.body;
-      
+
+      // Basic validation: return 400 for missing required fields
+      if (!title || !code) {
+        return res.status(400).json({ success: false, message: 'Title and code are required' });
+      }
+
+      // generate a URL-friendly slug to avoid duplicate null index errors
+      const base = (title || 'snippet').toString().toLowerCase()
+        .replace(/[^a-z0-9]+/g, '-')
+        .replace(/(^-|-$)/g, '');
+      const slug = `${base}-${nanoid(6)}`;
+
       const snippet = new Snippet({
         title,
         description: description || "",
@@ -14,21 +31,49 @@ const snippetController = {
         tags: tags || [],
         isPublic: isPublic || false,
         favorite: favorite || false,
-        userId: req.user._id
+        userId: req.user._id,
+        slug
       });
 
-      await snippet.save();
-      
+      try {
+        await snippet.save();
+      } catch (err) {
+        // handle duplicate key on slug specifically
+        if (err && err.code === 11000 && err.keyPattern && err.keyPattern.slug) {
+          console.error('Slug duplicate key error, retrying with new slug');
+          // retry once with a fresh slug
+          snippet.slug = `${base}-${nanoid(8)}`;
+          await snippet.save();
+        } else {
+          // rethrow so the outer catch can map validation errors to 400
+          throw err;
+        }
+      }
+
       res.status(201).json({
         success: true,
         message: "Snippet created successfully",
         data: snippet
       });
     } catch (error) {
+      // Log full error on server for debugging
       console.error("Create snippet error:", error);
+
+      // Map common mongoose validation errors to 400
+      if (error && (error.name === 'ValidationError' || error.name === 'CastError')) {
+        return res.status(400).json({
+          success: false,
+          message: error.message || 'Invalid snippet data',
+          errors: error.errors || undefined
+        });
+      }
+
+      // Generic server error
       res.status(500).json({
         success: false,
-        message: "Failed to create snippet"
+        message: error.message || "Failed to create snippet",
+        // include stack in dev only; remove or hide in production
+        stack: process.env.NODE_ENV === 'production' ? undefined : error.stack
       });
     }
   },

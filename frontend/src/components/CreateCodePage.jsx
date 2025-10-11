@@ -10,7 +10,7 @@ import {
   Sparkles,
   Zap
 } from 'lucide-react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useParams } from 'react-router-dom';
 import axios from "axios";
 import Toast from "./Toast";
 
@@ -24,13 +24,15 @@ const CreateCodePage = () => {
   const [tags, setTags] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [toast, setToast] = useState({ visible: false, message: "" });
+  const { id } = useParams();
+  const [isEditMode, setIsEditMode] = useState(false);
 
   const handleSave = async (e) => {
     e.preventDefault();
     setIsSubmitting(true);
 
     try {
-      const response = await axios.post("/api/snippets", {
+      const payload = {
         title,
         description,
         code,
@@ -41,7 +43,20 @@ const CreateCodePage = () => {
           .filter((tag) => tag),
         isPublic,
         favorite: false,
-      });
+      };
+
+      // Try to include token if available in localStorage (AuthContext can be used instead)
+      const token = localStorage.getItem("token") || null;
+      const config = token
+        ? { headers: { Authorization: `Bearer ${token}` } }
+        : undefined;
+
+      let response;
+      if (isEditMode && id) {
+        response = await axios.put(`/api/snippets/${id}`, payload, config);
+      } else {
+        response = await axios.post("/api/snippets", payload, config);
+      }
 
       if (response.data.success) {
         setToast({ visible: true, message: "Snippet created successfully!" });
@@ -50,15 +65,43 @@ const CreateCodePage = () => {
         }, 1500);
       }
     } catch (error) {
-      console.error("Error creating snippet:", error);
+      // Log helpful info for debugging
+      console.error("Error creating snippet (full):", error);
+      console.error("Server response body:", error.response?.data);
+
       setToast({
         visible: true,
-        message: error.response?.data?.message || "Failed to create snippet",
+        message:
+          error.response?.data?.message || error.message || "Failed to create snippet",
       });
     } finally {
       setIsSubmitting(false);
     }
   };
+
+  // Fetch snippet when in edit mode
+  React.useEffect(() => {
+    const fetchSnippet = async () => {
+      if (!id) return;
+      try {
+        const resp = await axios.get(`/api/snippets/${id}`);
+        if (resp.data && resp.data.success && resp.data.data) {
+          const s = resp.data.data;
+          setTitle(s.title || "");
+          setDescription(s.description || "");
+          setCode(s.code || "");
+          setLanguage(s.language || "javascript");
+          setTags((s.tags || []).join(", "));
+          setIsPublic(Boolean(s.isPublic));
+          setIsEditMode(true);
+        }
+      } catch (err) {
+        console.error("Failed to fetch snippet for edit:", err);
+        setToast({ visible: true, message: "Failed to load snippet for editing" });
+      }
+    };
+    fetchSnippet();
+  }, [id]);
 
   const handleCopy = () => {
     navigator.clipboard.writeText(code);
@@ -96,7 +139,7 @@ const CreateCodePage = () => {
                 </div>
                 <div>
                   <h1 className="text-2xl font-bold bg-gradient-to-r from-blue-400 to-blue-900 bg-clip-text text-transparent">
-                    Create Snippet
+                    {isEditMode ? 'Edit Snippet' : 'Create Snippet'}
                   </h1>
                   <p className="text-gray-600 dark:text-gray-400 text-sm">
                     Add your code to the collection
@@ -123,7 +166,7 @@ const CreateCodePage = () => {
                   <Save size={20} className="relative z-10" />
                 )}
                 <span className="relative z-10 font-semibold">
-                  {isSubmitting ? "Creating..." : "Create Snippet"}
+                  {isSubmitting ? (isEditMode ? 'Updating...' : 'Creating...') : (isEditMode ? 'Update Snippet' : 'Create Snippet')}
                 </span>
               </button>
             </div>

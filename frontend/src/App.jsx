@@ -5,6 +5,7 @@ import Home from "./pages/Home";
 import Login from "./pages/Login";
 import Signup from "./pages/Signup";
 import CreateCodePage from "./components/CreateCodePage";
+import SharedSnippet from "./pages/SharedSnippet";
 import ProtectedRoute from "./components/ProtectedRoute";
 
 function AppContent() {
@@ -21,6 +22,12 @@ function AppContent() {
                 <CreateCodePage />
               </ProtectedRoute>
             } />
+            <Route path="/edit/:id" element={
+              <ProtectedRoute>
+                <CreateCodePage />
+              </ProtectedRoute>
+            } />
+            <Route path="/shared/:id" element={<SharedSnippet />} />
             <Route path="/dashboard" element={
               <ProtectedRoute>
                 <Home />
