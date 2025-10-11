@@ -502,7 +502,10 @@ const EmptyState = ({ searchTerm }) => (
         : 'Start organizing your code by creating your first snippet!'
       }
     </p>
-    <button className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white px-8 py-3 rounded-xl font-semibold transition-all duration-300 hover:scale-105 hover:shadow-lg">
+    <button
+      className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white px-8 py-3 rounded-xl font-semibold transition-all duration-300 hover:scale-105 hover:shadow-lg"
+      onClick={() => window.location.href = '/create'}
+    >
       Create Your First Snippet
     </button>
   </div>

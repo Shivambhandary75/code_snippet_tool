@@ -1,6 +1,7 @@
 import { BrowserRouter as Router, Routes, Route, Link } from "react-router-dom";
 import Home from "./pages/Home";
-import { ThemeProvider } from "./context/ThemeContext";
+import CreateCodePage from "./components/CreateCodePage";
+import ThemeProvider from "./context/ThemeContext";
 
 function App() {
   return (
@@ -14,6 +15,7 @@ function App() {
         <div className="">
           <Routes>
             <Route path="/" element={<Home/>} />
+            <Route path="/create" element={<CreateCodePage />} />
           </Routes>
         </div>
       </Router>

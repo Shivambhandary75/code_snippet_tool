@@ -25,12 +25,10 @@ const Header = ({ onCreateSnippet }) => {
             </svg>
           )}
         </button>
-        <button
-          onClick={onCreateSnippet}
-          className={`px-4 py-2 rounded-lg font-semibold shadow transition transform ${darkMode ? 'bg-blue-600 hover:bg-blue-700 text-white' : 'bg-white/20 hover:bg-white/30 text-white'}`}
-        >
-          Create New Snippet
-        </button>
+            <button
+      className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white px-8 py-3 rounded-xl font-semibold transition-all duration-300 hover:scale-105 hover:shadow-lg"
+      onClick={() => window.location.href = '/create'}
+    />
       </div>
     </header>
   );
