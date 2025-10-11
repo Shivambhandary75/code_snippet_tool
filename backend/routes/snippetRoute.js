@@ -1,9 +1,13 @@
 const express = require("express");
 const router = express.Router();
-const snippetController = require("../controllers/snippetController");
-const authMiddleware = require("../middleware/authMiddleware");
+const snippetController = require("../controllers/SnippetController");
+const authMiddleware = require("../middleware/authmiddleware");
 const validateRequest = require("../middleware/validateRequest");
 const snippetValidation = require("../validation/snippetValidation");
+
+// Public routes (no auth required for these)
+router.get("/public/shared", snippetController.getPublicSnippets);
+router.get("/public/shared/:id", snippetController.getPublicSnippet);
 
 // All routes below require authentication
 router.use(authMiddleware);
@@ -23,9 +27,5 @@ router.put(
 );
 router.delete("/:id", snippetController.deleteSnippet);
 router.patch("/:id/favorite", snippetController.toggleFavorite);
-
-// Public routes (no auth required for these)
-router.get("/public/shared", snippetController.getPublicSnippets);
-router.get("/public/shared/:id", snippetController.getPublicSnippet);
 
 module.exports = router;

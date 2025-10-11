@@ -4,10 +4,11 @@ const dotenv = require('dotenv');
 const cors = require('cors');
 const helmet = require('helmet');
 const morgan = require('morgan');
+const cookieParser = require("cookie-parser");
 
 dotenv.config();
 
-const snippetRoutes = require('./routes/snippetRoute');
+const snippetRoutes = require("./routes/snippetRoute");
 const AuthRoute = require("./routes/AuthRoute");
 
 const app = express();
@@ -29,6 +30,7 @@ mongoose
 app.use(cors());
 app.use(helmet());
 app.use(morgan("combined"));
+app.use(cookieParser());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
