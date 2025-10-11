@@ -1,4 +1,14 @@
-const express = require("express");
+const express = require('express');
+const mongoose = require('mongoose');
+const dotenv = require('dotenv');
+const cors = require('cors');
+const helmet = require('helmet');
+const morgan = require('morgan');
+
+dotenv.config();
+
+const snippetRoutes = require('./routes/snippetRoute');
+
 const app = express();
 const port = 3000;
 const cors = require("cors");
