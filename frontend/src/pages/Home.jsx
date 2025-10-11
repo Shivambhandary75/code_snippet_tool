@@ -1,8 +1,15 @@
 import React from "react";
 import Dashboard from "../components/Dashboard";
-export default function Home(){
+import Header from "../components/Header";
+import Footer from "../components/Footer";
 
+export default function Home(){
     return(
+        <>
+         <Header/>
         <Dashboard/>
+        <Footer/>
+        </>
+       
     );
 }

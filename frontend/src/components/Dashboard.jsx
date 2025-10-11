@@ -1,5 +1,8 @@
 // src/components/Dashboard.jsx
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useContext } from 'react';
+import { ThemeContext } from '../context/ThemeContext';
+import CodeSnippet from './CodeSnippet';
+import Toast from './Toast';
 import { 
   Plus, 
   Search, 
@@ -23,26 +26,47 @@ const Dashboard = () => {
   const [viewMode, setViewMode] = useState('grid');
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedLanguage, setSelectedLanguage] = useState('all');
-  const [darkMode, setDarkMode] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
+  const [copiedId, setCopiedId] = useState(null);
+  const [toast, setToast] = useState({ visible: false, message: '' });
 
-  // Initialize dark mode from system preference
+  // use shared theme from ThemeContext
+  const { darkMode } = useContext(ThemeContext);
+
+  // clear loading on mount (ThemeProvider handles persistence/apply)
   useEffect(() => {
-    const isDark = localStorage.getItem('darkMode') === 'true' || 
-      window.matchMedia('(prefers-color-scheme: dark)').matches;
-    setDarkMode(isDark);
     setIsLoading(false);
   }, []);
 
-  // Apply dark mode class to document
-  useEffect(() => {
-    if (darkMode) {
-      document.documentElement.classList.add('dark');
-    } else {
-      document.documentElement.classList.remove('dark');
+  // copy helper used by action buttons (with simple transient state for feedback)
+  const copyToClipboard = async (text, id = null) => {
+    try {
+      if (navigator && navigator.clipboard && navigator.clipboard.writeText) {
+        await navigator.clipboard.writeText(text);
+      } else {
+        const ta = document.createElement('textarea');
+        ta.value = text;
+        ta.style.position = 'fixed';
+        ta.style.opacity = '0';
+        document.body.appendChild(ta);
+        ta.focus();
+        ta.select();
+        document.execCommand('copy');
+        document.body.removeChild(ta);
+      }
+      if (id !== null) setCopiedId(id);
+      // show toast
+      setToast({ visible: true, message: 'Copied to clipboard' });
+      // clear after 2s
+      setTimeout(() => {
+        setCopiedId(null);
+        setToast({ visible: false, message: '' });
+      }, 2000);
+    } catch (err) {
+      // eslint-disable-next-line no-console
+      console.error('copy failed', err);
     }
-    localStorage.setItem('darkMode', darkMode);
-  }, [darkMode]);
+  };
 
   // Mock data
   const snippets = [
@@ -103,11 +127,12 @@ const Dashboard = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-blue-50 dark:from-gray-900 dark:to-gray-800 transition-colors duration-300">
-
-     
-
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+    <div className="min-h-screen transition-colors duration-300">
+      {/* Key on darkMode to force re-render on theme change */}
+      <div
+        key={darkMode ? 'dark' : 'light'}
+        className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8"
+      >
         {/* Stats Cards with Animation */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
           <StatCard 
@@ -145,15 +170,20 @@ const Dashboard = () => {
         </div>
 
         {/* Search and Filters */}
-        <div className="bg-white/80 dark:bg-gray-800/80 backdrop-blur-lg rounded-2xl shadow-sm p-6 mb-8 border border-gray-200/50 dark:border-gray-700/50 transition-all duration-300 hover:shadow-md">
+        <div className={`rounded-2xl shadow-sm p-6 mb-8 border transition-all duration-300 hover:shadow-md backdrop-blur-lg ${
+          darkMode
+            ? 'bg-gray-800/80 border-gray-700/50'
+            : 'bg-white/80 border-gray-200/50'
+        }`}>
           <div className="flex flex-col lg:flex-row gap-4">
             {/* Search Bar */}
             <div className="flex-1 relative group">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 group-focus-within:text-blue-500 transition-colors" size={20} />
+              <Search className={`absolute left-3 top-1/2 transform -translate-y-1/2 transition-colors ${darkMode ? 'text-gray-400 group-focus-within:text-blue-400' : 'text-gray-500 group-focus-within:text-blue-500'}`} size={20} />
               <input
                 type="text"
                 placeholder="Search snippets by title, description, or tags..."
-                className="w-full pl-10 pr-4 py-3 bg-transparent border border-gray-300 dark:border-gray-600 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-300"
+                className={`w-full pl-10 pr-4 py-3 border rounded-xl focus:ring-2 focus:border-transparent transition-all duration-300
+                  ${darkMode ? 'bg-gray-900 text-gray-200 border-gray-600 placeholder-gray-400 focus:ring-blue-400' : 'bg-white text-gray-900 border-gray-300 placeholder-gray-500 focus:ring-blue-500'}`}
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
               />
@@ -162,21 +192,22 @@ const Dashboard = () => {
             {/* Language Filter */}
             <div className="relative group">
               <select
-                className="appearance-none px-4 py-3 bg-transparent border border-gray-300 dark:border-gray-600 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-300 pr-10"
+                className={`appearance-none px-4 py-3 border rounded-xl focus:ring-2 focus:border-transparent transition-all duration-300 pr-10
+                  ${darkMode ? 'bg-gray-900 text-gray-200 border-gray-600 focus:ring-blue-400' : 'bg-white text-gray-900 border-gray-300 focus:ring-blue-500'}`}
                 value={selectedLanguage}
                 onChange={(e) => setSelectedLanguage(e.target.value)}
               >
                 {languages.map(lang => (
-                  <option key={lang} value={lang}>
+                  <option key={lang} value={lang} className={darkMode ? 'bg-gray-900 text-gray-200' : 'bg-white text-gray-900'}>
                     {lang === 'all' ? 'All Languages' : lang.charAt(0).toUpperCase() + lang.slice(1)}
                   </option>
                 ))}
               </select>
-              <ChevronDown className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 pointer-events-none" size={16} />
+              <ChevronDown className={`absolute right-3 top-1/2 transform -translate-y-1/2 pointer-events-none ${darkMode ? 'text-gray-400' : 'text-gray-400'}`} size={16} />
             </div>
             
             {/* View Toggle */}
-            <div className="flex bg-gray-100 dark:bg-gray-700 rounded-xl p-1">
+            <div className={`flex   rounded-xl p-1 ${darkMode ? 'bg-gray-700':'bg-gray-100'}`}>
               <button
                 onClick={() => setViewMode('grid')}
                 className={`p-2 rounded-lg transition-all duration-300 ${
@@ -229,6 +260,7 @@ const Dashboard = () => {
 
 // Enhanced Stat Card Component
 const StatCard = ({ icon, label, value, trend, color, delay }) => {
+  const { darkMode } = useContext(ThemeContext);
   const colorClasses = {
     blue: 'from-blue-500 to-blue-600',
     yellow: 'from-yellow-500 to-yellow-600',
@@ -236,25 +268,43 @@ const StatCard = ({ icon, label, value, trend, color, delay }) => {
     purple: 'from-purple-500 to-purple-600'
   };
 
+  // pick icon color based on stat color and theme
+  const iconColorMap = {
+    blue: darkMode ? 'text-blue-300' : 'text-blue-600',
+    yellow: darkMode ? 'text-yellow-300' : 'text-yellow-600',
+    green: darkMode ? 'text-green-300' : 'text-green-600',
+    purple: darkMode ? 'text-purple-300' : 'text-purple-600'
+  };
+
+  const coloredIcon = React.cloneElement(icon, {
+    className: iconColorMap[color] || icon.props.className,
+    size: icon.props.size || 24
+  });
+
+  const wrapperClass = darkMode
+    ? 'group relative overflow-hidden rounded-2xl bg-white/10 dark:bg-gray-800/80 backdrop-blur-lg p-6 border border-gray-700/50 hover:shadow-lg transition-all duration-500 hover:scale-105'
+    : 'group relative overflow-hidden rounded-2xl bg-white p-6 border border-gray-200 shadow-sm hover:shadow-lg transition-all duration-500 hover:scale-105';
+
+  const overlayClass = darkMode
+    ? 'absolute inset-0 bg-gradient-to-br from-transparent to-gray-700/50 opacity-0 group-hover:opacity-100 transition-opacity duration-300'
+    : 'absolute inset-0 bg-gradient-to-br from-transparent to-black/5 opacity-0 group-hover:opacity-100 transition-opacity duration-300';
+
   return (
-    <div 
-      className="group relative overflow-hidden rounded-2xl bg-white/80 dark:bg-gray-800/80 backdrop-blur-lg p-6 border border-gray-200/50 dark:border-gray-700/50 hover:shadow-lg transition-all duration-500 hover:scale-105"
-      style={{ animationDelay: `${delay}ms` }}
-    >
+    <div className={wrapperClass} style={{ animationDelay: `${delay}ms` }}>
       <div className="relative z-10">
         <div className="flex items-center justify-between mb-4">
           <div className={`p-3 rounded-xl bg-gradient-to-r ${colorClasses[color]} shadow-lg group-hover:scale-110 transition-transform duration-300`}>
-            {icon}
+            {coloredIcon}
           </div>
           <Sparkles className="text-gray-300 dark:text-gray-600 group-hover:text-yellow-400 transition-colors duration-300" size={16} />
         </div>
         <div>
-          <p className="text-sm font-medium text-gray-600 dark:text-gray-400 mb-1">{label}</p>
-          <p className="text-2xl font-bold text-gray-900 dark:text-white mb-1">{value}</p>
-          <p className="text-xs text-gray-500 dark:text-gray-400">{trend}</p>
+          <p className={`text-sm font-medium mb-1 ${darkMode ? 'text-gray-600 dark:text-gray-400' : 'text-gray-600'}`}>{label}</p>
+          <p className={`text-2xl font-bold mb-1 ${darkMode ? 'text-gray-900 dark:text-white' : 'text-gray-900'}`}>{value}</p>
+          <p className={`text-xs ${darkMode ? 'text-gray-500 dark:text-gray-400' : 'text-gray-500'}`}>{trend}</p>
         </div>
       </div>
-      <div className="absolute inset-0 bg-gradient-to-br from-transparent to-white/50 dark:to-gray-700/50 opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+      <div className={overlayClass} />
     </div>
   );
 };
@@ -262,10 +312,15 @@ const StatCard = ({ icon, label, value, trend, color, delay }) => {
 // Enhanced Snippet Card Component
 const SnippetCard = ({ snippet, index }) => {
   const [isHovered, setIsHovered] = useState(false);
+  const { darkMode } = useContext(ThemeContext);
+
+  const cardWrapper = darkMode
+    ? 'group relative bg-white/10 dark:bg-gray-800/80 backdrop-blur-lg rounded-2xl shadow-sm border border-gray-700/50 hover:shadow-xl transition-all duration-500 hover:scale-105 overflow-hidden'
+    : 'group relative bg-white rounded-2xl shadow-sm border border-gray-200 hover:shadow-lg transition-all duration-500 hover:scale-105 overflow-hidden';
 
   return (
     <div 
-      className="group relative bg-white/80 dark:bg-gray-800/80 backdrop-blur-lg rounded-2xl shadow-sm border border-gray-200/50 dark:border-gray-700/50 hover:shadow-xl transition-all duration-500 hover:scale-105 overflow-hidden"
+      className={cardWrapper}
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
       style={{ animationDelay: `${index * 100}ms` }}
@@ -299,16 +354,14 @@ const SnippetCard = ({ snippet, index }) => {
         </div>
 
         {/* Title and Description */}
-        <h3 className="font-semibold text-gray-900 dark:text-white mb-2 line-clamp-1 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">
+        <h3 className={`font-semibold mb-2 line-clamp-1 transition-colors ${darkMode ? 'text-white' : 'text-gray-900'} group-hover:text-blue-600 dark:group-hover:text-blue-400`}>
           {snippet.title}
         </h3>
         <p className="text-gray-600 dark:text-gray-400 text-sm mb-4 line-clamp-2">{snippet.description}</p>
 
         {/* Code Preview */}
-        <div className="bg-gray-50 dark:bg-gray-700/50 rounded-lg p-3 mb-4 border border-gray-200 dark:border-gray-600 transition-colors duration-300">
-          <code className="text-sm text-gray-700 dark:text-gray-300 font-mono line-clamp-3">
-            {snippet.code}
-          </code>
+        <div className="mb-4">
+          <CodeSnippet code={snippet.code} className={darkMode ? 'bg-gray-700/50 border-gray-600 text-gray-300' : 'bg-gray-50 border-gray-200 text-gray-700'} onCopy={() => copyToClipboard(snippet.code, snippet.id)} />
         </div>
 
         {/* Tags */}
@@ -316,7 +369,7 @@ const SnippetCard = ({ snippet, index }) => {
           {snippet.tags.map(tag => (
             <span 
               key={tag} 
-              className="px-2 py-1 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 text-xs rounded-lg transition-colors duration-300 hover:bg-blue-100 dark:hover:bg-blue-500/20 hover:text-blue-700 dark:hover:text-blue-300"
+              className={`px-2 py-1 text-xs rounded-lg transition-colors duration-300 ${darkMode ? 'bg-gray-700 text-gray-300 hover:bg-blue-500/20 hover:text-blue-300' : 'bg-gray-100 text-gray-700 hover:bg-blue-100 hover:text-blue-700'}`}
             >
               {tag}
             </span>
@@ -328,7 +381,7 @@ const SnippetCard = ({ snippet, index }) => {
           isHovered ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-2'
         }`}>
           <div className="flex space-x-1">
-            <ActionButton icon={<Copy size={16} />} label="Copy" color="gray" />
+            
             <ActionButton icon={<Edit size={16} />} label="Edit" color="green" />
             <ActionButton icon={<Trash2 size={16} />} label="Delete" color="red" />
           </div>
@@ -341,9 +394,15 @@ const SnippetCard = ({ snippet, index }) => {
 
 // Enhanced Snippet List Item
 const SnippetListItem = ({ snippet, index }) => {
+  const { darkMode } = useContext(ThemeContext);
+
+  const listWrapper = darkMode
+    ? 'group border-b border-gray-700/50 last:border-b-0 dark:bg-transparent dark:hover:bg-gray-700/50 transition-all duration-500 hover:pl-8'
+    : 'group border-b border-gray-200 last:border-b-0 bg-white hover:bg-gray-50 transition-all duration-500 hover:pl-8';
+
   return (
     <div 
-      className="group border-b border-gray-200/50 dark:border-gray-700/50 last:border-b-0 hover:bg-gray-50/50 dark:hover:bg-gray-700/50 transition-all duration-500 hover:pl-8"
+      className={listWrapper}
       style={{ animationDelay: `${index * 50}ms` }}
     >
       <div className="p-6">
@@ -356,7 +415,7 @@ const SnippetListItem = ({ snippet, index }) => {
                 snippet.language === 'css' ? 'bg-purple-400' :
                 snippet.language === 'typescript' ? 'bg-blue-600' : 'bg-gray-400'
               }`}></div>
-              <h3 className="font-semibold text-gray-900 dark:text-white truncate group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">
+              <h3 className={`font-semibold truncate transition-colors ${darkMode ? 'text-white' : 'text-gray-900'} group-hover:text-blue-600 dark:group-hover:text-blue-400`}>
                 {snippet.title}
               </h3>
               <span className="text-sm text-gray-500 dark:text-gray-400 capitalize px-3 py-1 bg-gray-100 dark:bg-gray-700 rounded-full">
@@ -364,12 +423,12 @@ const SnippetListItem = ({ snippet, index }) => {
               </span>
               <div className="flex space-x-1">
                 {snippet.tags.slice(0, 2).map(tag => (
-                  <span key={tag} className="px-2 py-1 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 text-xs rounded-lg">
+                  <span key={tag} className={`px-2 py-1 text-xs rounded-lg ${darkMode ? 'bg-gray-700 text-gray-300' : 'bg-gray-100 text-gray-700'}`}>
                     {tag}
                   </span>
                 ))}
                 {snippet.tags.length > 2 && (
-                  <span className="px-2 py-1 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 text-xs rounded-lg">
+                  <span className={`px-2 py-1 text-xs rounded-lg ${darkMode ? 'bg-gray-700 text-gray-300' : 'bg-gray-100 text-gray-700'}`}>
                     +{snippet.tags.length - 2}
                   </span>
                 )}
@@ -383,7 +442,6 @@ const SnippetListItem = ({ snippet, index }) => {
           
           <div className="flex items-center space-x-1 ml-4 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
             <ActionButton icon={<Star size={16} fill={snippet.favorite ? 'currentColor' : 'none'} />} label="Favorite" color="yellow" small />
-            <ActionButton icon={<Copy size={16} />} label="Copy" color="gray" small />
             <ActionButton icon={<Edit size={16} />} label="Edit" color="green" small />
             <ActionButton icon={<Trash2 size={16} />} label="Delete" color="red" small />
           </div>
@@ -394,7 +452,7 @@ const SnippetListItem = ({ snippet, index }) => {
 };
 
 // Reusable Action Button Component
-const ActionButton = ({ icon, label, color, small = false }) => {
+const ActionButton = ({ icon, label, color, small = false, onClick }) => {
   const colorClasses = {
     gray: 'text-gray-400 hover:text-gray-600 hover:bg-gray-100 dark:hover:bg-gray-700',
     blue: 'text-blue-400 hover:text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-500/20',
@@ -406,8 +464,10 @@ const ActionButton = ({ icon, label, color, small = false }) => {
 
   return (
     <button 
-      className={`p-2 rounded-lg transition-all duration-300 hover:scale-110 ${colorClasses[color]} ${small ? 'p-1' : 'p-2'}`}
+      onClick={onClick}
+      className={`p-2 rounded-lg transition-all duration-300 hover:scale-110 ${colorClasses[color]} ${small ? 'p-1 text-xs' : 'p-2'}`}
       title={label}
+      aria-label={label}
     >
       {icon}
     </button>
@@ -415,14 +475,17 @@ const ActionButton = ({ icon, label, color, small = false }) => {
 };
 
 // Loading Screen Component
-const LoadingScreen = () => (
-  <div className="min-h-screen bg-gradient-to-br from-gray-50 to-blue-50 dark:from-gray-900 dark:to-gray-800 flex items-center justify-center">
-    <div className="text-center">
-      <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
-      <p className="text-gray-600 dark:text-gray-400">Loading your snippets...</p>
+const LoadingScreen = () => {
+  const { darkMode } = useContext(ThemeContext);
+  return (
+    <div className="min-h-screen flex items-center justify-center" style={{background: darkMode ? undefined : undefined}}>
+      <div className="text-center">
+        <div className={`animate-spin rounded-full h-12 w-12 border-b-2 mx-auto mb-4 ${darkMode ? 'border-blue-300' : 'border-blue-600'}`}></div>
+        <p className={` ${darkMode ? 'text-gray-200' : 'text-gray-600'}`}>Loading your snippets...</p>
+      </div>
     </div>
-  </div>
-);
+  );
+};
 
 // Empty State Component
 const EmptyState = ({ searchTerm }) => (
