@@ -1,5 +1,5 @@
 // src/components/CreateCodePage.jsx
-import React, { useState } from 'react';
+import React, { useState, useContext } from 'react';
 import { 
   ArrowLeft, 
   Save, 
@@ -13,6 +13,7 @@ import {
 import { useNavigate, useParams } from 'react-router-dom';
 import axios from "axios";
 import Toast from "./Toast";
+import { ThemeContext } from '../context/ThemeContext';
 
 const CreateCodePage = () => {
   const navigate = useNavigate();
@@ -120,16 +121,18 @@ const CreateCodePage = () => {
     { value: "sql", label: "SQL", color: "bg-gray-500" },
   ];
 
+  const { darkMode } = useContext(ThemeContext);
+
   return (
-    <div className="min-h-screen bg-gradient-to-r from-blue-900 via-black to-black transition-colors duration-300">
+    <div className={`min-h-screen transition-colors duration-300 ${darkMode ? 'bg-gray-900' : 'bg-gray-50'}`}>
       {/* Header */}
-      <header className="bg-gradient-to-r from-blue-900 via-black to-black border-b border-gray-800 sticky top-0 z-50">
+      <header className={`border-b sticky top-0 z-50 ${darkMode ? 'bg-gray-900 border-gray-800' : 'bg-white/80 border-gray-200'}`}>
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center py-4">
             <div className="flex items-center space-x-4">
               <button
                 onClick={() => navigate("/dashboard")}
-                className="p-2 rounded-lg bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 transition-all duration-300 hover:scale-105 flex items-center space-x-2 text-gray-600 dark:text-gray-400"
+                className={`p-2 rounded-lg transition-all duration-300 hover:scale-105 flex items-center space-x-2 ${darkMode ? 'bg-gray-800 text-gray-300 hover:bg-gray-700' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}
               >
                 <ArrowLeft size={20} />
               </button>
@@ -149,17 +152,17 @@ const CreateCodePage = () => {
             </div>
 
             <div className="flex items-center space-x-4">
-              <div className="flex items-center space-x-2 text-sm text-gray-500 dark:text-gray-400">
+              <div className={`flex items-center space-x-2 text-sm ${darkMode ? 'text-gray-300' : 'text-gray-500'}`}>
                 <Zap size={16} className="text-yellow-500" />
                 <span>Pro Tips</span>
               </div>
               <button
-                className="group relative bg-gradient-to-r from-blue-800 to-black hover:from-blue-900 hover:to-black text-white px-6 py-3 rounded-xl flex items-center space-x-2 transition-all duration-300 hover:scale-105 hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
+                className={`group relative px-6 py-3 rounded-xl flex items-center space-x-2 transition-all duration-300 hover:scale-105 hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed ${darkMode ? 'bg-gradient-to-r from-blue-800 to-black text-white' : 'bg-gradient-to-r from-blue-800 to-black text-white'}`}
                 type="submit"
                 form="snippet-form"
                 disabled={isSubmitting}
               >
-                <div className="absolute inset-0 bg-white/20 rounded-xl scale-0 group-hover:scale-100 transition-transform duration-300" />
+                <div className={`absolute inset-0 rounded-xl scale-0 group-hover:scale-100 transition-transform duration-300 ${darkMode ? 'bg-black/20' : 'bg-white/20'}`} />
                 {isSubmitting ? (
                   <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
                 ) : (
@@ -174,7 +177,7 @@ const CreateCodePage = () => {
         </div>
       </header>
 
-      <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+  <div key={darkMode ? 'dark' : 'light'} className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Stats Cards */}
         {/* Remove quick setup card for a cleaner look */}
 
@@ -213,7 +216,7 @@ const CreateCodePage = () => {
               </div>
 
               {/* Code Editor */}
-              <div className="bg-gradient-to-r from-blue-900 via-black to-black rounded-2xl shadow-sm border border-gray-800 overflow-hidden">
+              <div className={`rounded-2xl shadow-sm border ${darkMode ? 'border-gray-700 bg-gray-800/80' : 'border-gray-200 bg-white/80'} overflow-hidden`}>
                 <div className="flex justify-between items-center p-4 border-b border-gray-200 dark:border-gray-700">
                   <label className="block text-sm font-semibold text-gray-900 dark:text-white">
                     Code *
@@ -239,10 +242,8 @@ const CreateCodePage = () => {
                     value={code}
                     onChange={(e) => setCode(e.target.value)}
                     rows={15}
-                    className="w-full bg-black text-blue-100 p-4 font-mono text-sm focus:outline-none border-0 focus:ring-0 resize-vertical"
-                    placeholder="// Start writing your code here...
-// You can paste existing code or write new code
-// Make sure to format it properly for better readability"
+                    className={`w-full p-4 font-mono text-sm focus:outline-none border-0 focus:ring-0 resize-vertical ${darkMode ? 'bg-gray-900 text-blue-100' : 'bg-black text-blue-100'}`}
+                    placeholder="// Start writing your code here...\n// You can paste existing code or write new code\n// Make sure to format it properly for better readability"
                     spellCheck="false"
                   />
                 </div>
@@ -253,7 +254,7 @@ const CreateCodePage = () => {
           {/* Sidebar - Settings */}
           <div className="space-y-6">
             {/* Language & Privacy */}
-            <div className="bg-gradient-to-r from-blue-900 via-black to-black rounded-2xl shadow-sm p-6 border border-gray-800">
+            <div className={`rounded-2xl shadow-sm p-6 border ${darkMode ? 'bg-gray-800/80 border-gray-700/50' : 'bg-white/80 border-gray-200/50'}`}>
               <h3 className="font-semibold text-gray-900 dark:text-white mb-4">
                 Settings
               </h3>
@@ -307,7 +308,7 @@ const CreateCodePage = () => {
                       className="text-green-500 focus:ring-green-500"
                     />
                     <div className="flex items-center space-x-2">
-                      <EyeOff size={16} className="text-gray-500" />
+                      <EyeOff size={16} className="text-red-500" />
                       <span className="text-sm">Private</span>
                     </div>
                     <span className="text-xs text-gray-500 ml-auto">
@@ -336,12 +337,12 @@ const CreateCodePage = () => {
             </div>
 
             {/* Tips */}
-            <div className="bg-gradient-to-r from-blue-900 via-black to-black border border-blue-900 rounded-2xl p-6">
+            <div className={`rounded-2xl p-6 border ${darkMode ? 'bg-gray-800/80 border-gray-700/50' : 'bg-white/80 border-gray-200/50'}`}>
               <h4 className="font-semibold text-blue-200 mb-3 flex items-center space-x-2">
                 <Zap size={16} className="text-blue-500" />
                 <span>Pro Tips</span>
               </h4>
-              <ul className="space-y-2 text-sm text-blue-300">
+              <ul className="space-y-2 text-sm text-white">
                 <li>• Use descriptive titles and descriptions</li>
                 <li>• Add relevant tags for better searchability</li>
                 <li>• Format your code properly</li>
@@ -371,24 +372,25 @@ const CreateCodePage = () => {
               <span>Copy Code</span>
             </button>
 
-            <button
-              type="submit"
-              form="snippet-form"
-              disabled={isSubmitting}
-              className="px-8 py-3 rounded-xl bg-gradient-to-r from-blue-800 to-black hover:from-blue-900 hover:to-black text-white font-medium transition-all duration-300 hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed flex items-center space-x-2"
-            >
-              {isSubmitting ? (
-                <>
-                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
-                  <span>Creating...</span>
-                </>
-              ) : (
-                <>
-                  <Save size={16} />
-                  <span>Create Snippet</span>
-                </>
-              )}
-            </button>
+              <button
+                type="submit"
+                form="snippet-form"
+                disabled={isSubmitting}
+                className={`group relative px-8 py-3 rounded-xl flex items-center space-x-2 transition-all duration-300 hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed ${darkMode ? 'bg-gradient-to-r from-blue-800 to-black text-white' : 'bg-gradient-to-r from-blue-800 to-black text-white'}`}
+              >
+                <div className={`absolute inset-0 rounded-xl scale-0 group-hover:scale-100 transition-transform duration-300 ${darkMode ? 'bg-black/20' : 'bg-white/20'}`} />
+                {isSubmitting ? (
+                  <>
+                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                    <span>{isEditMode ? 'Updating...' : 'Creating...'}</span>
+                  </>
+                ) : (
+                  <>
+                    <Save size={16} />
+                    <span>{isEditMode ? 'Update Snippet' : 'Create Snippet'}</span>
+                  </>
+                )}
+              </button>
           </div>
         </div>
 
